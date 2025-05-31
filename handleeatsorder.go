@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.uber.org/cadence/activity"
@@ -95,7 +96,9 @@ func handleEatsOrderWorkflow(ctx workflow.Context, userId string, order Order, r
 func printReceivedActivity(ctx context.Context, userId string, order Order, restaurantId string) (string, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("printReceived activity started")
-	return fmt.Sprintf("Order %v received: %v from userId %v for restaurantId %v", order.ID, order.Content, userId, restaurantId), nil
+	// Output the content list as a comma-separated string
+	contentString := strings.Join(order.Content, ", ")
+	return fmt.Sprintf("Order %v received: [%v] from userId %v for restaurantId %v", order.ID, contentString, userId, restaurantId), nil
 }
 
 func printCustomerMessageActivity(ctx context.Context) (string, error) {
