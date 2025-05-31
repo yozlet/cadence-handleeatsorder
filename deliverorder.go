@@ -25,10 +25,11 @@ func deliverOrderWorkflow(ctx workflow.Context, orderID string) error {
 	logger := workflow.GetLogger(ctx)
 	logger.Info("DeliverOrder workflow started")
 
-	// Sleep for DeliverySleepSeconds seconds
+	// Step 1: sleep for DeliverySleepSeconds seconds
 	workflow.Sleep(ctx, time.Duration(DeliverySleepSeconds)*time.Second)
 	logger.Info("Waited "+strconv.Itoa(DeliverySleepSeconds)+" seconds", zap.Int("seconds", DeliverySleepSeconds))
 
+	// Step 2: deliver the order
 	var deliveryResult string
 	err := workflow.ExecuteActivity(ctx, deliverOrderActivity, orderID).Get(ctx, &deliveryResult)
 	if err != nil {
@@ -36,6 +37,7 @@ func deliverOrderWorkflow(ctx workflow.Context, orderID string) error {
 		return err
 	}
 
+	// End the workflow
 	logger.Info("Delivery completed", zap.String("Result", deliveryResult))
 	return nil
 }
