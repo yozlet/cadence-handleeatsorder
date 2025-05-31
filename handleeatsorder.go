@@ -20,6 +20,9 @@ type OrderDecision struct {
 	Reason   string `json:"reason"`
 }
 
+// WaitSeconds is the number of seconds to wait when the order is accepted
+var SleepSeconds = 3
+
 func handleEatsOrderWorkflow(ctx workflow.Context, userId string, order Order, restaurantId string) error {
 	ao := workflow.ActivityOptions{
 		ScheduleToStartTimeout: time.Minute,
@@ -47,10 +50,22 @@ func handleEatsOrderWorkflow(ctx workflow.Context, userId string, order Order, r
 
 	if decision.Accepted {
 		logger.Info("Order accepted", zap.String("reason", decision.Reason))
-		// TODO: Add logic for accepted order
+
+		// Start the delivery workflow
+		childWorkflowOptions := workflow.ChildWorkflowOptions{
+			ExecutionStartToCloseTimeout: time.Minute * 5,
+		}
+		ctx = workflow.WithChildWorkflowOptions(ctx, childWorkflowOptions)
+
+		err = workflow.ExecuteChildWorkflow(ctx, deliverOrderWorkflow, order.ID).Get(ctx, nil)
+		if err != nil {
+			logger.Error("Delivery workflow failed", zap.Error(err))
+			return err
+		}
 	} else {
 		logger.Info("Order rejected", zap.String("reason", decision.Reason))
-		// TODO: Add logic for rejected order
+		// When the order is rejected, we end after logging the reason.
+		// We consider this valid execution so it doesn't need an error or retry.
 	}
 
 	logger.Info("Workflow completed.", zap.String("Result", printReceivedResult))
