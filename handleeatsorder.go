@@ -67,6 +67,15 @@ func handleEatsOrderWorkflow(ctx workflow.Context, userId string, order Order, r
 			logger.Error("Delivery workflow failed", zap.Error(err))
 			return err
 		}
+
+		// Print final message after delivery is complete
+		var customerMessage string
+		err = workflow.ExecuteActivity(ctx, printCustomerMessageActivity).Get(ctx, &customerMessage)
+		if err != nil {
+			logger.Error("Customer message activity failed", zap.Error(err))
+			return err
+		}
+		logger.Info("Customer message", zap.String("message", customerMessage))
 	} else {
 		logger.Info("Order rejected", zap.String("reason", decision.Reason))
 		// When the order is rejected, we end after logging the reason.
@@ -83,7 +92,14 @@ func printReceivedActivity(ctx context.Context, userId string, order Order, rest
 	return fmt.Sprintf("Order %v received: %v from userId %v for restaurantId %v", order.ID, order.Content, userId, restaurantId), nil
 }
 
+func printCustomerMessageActivity(ctx context.Context) (string, error) {
+	logger := activity.GetLogger(ctx)
+	logger.Info("Printing customer message")
+	return "Your order is in front of your door!", nil
+}
+
 func init() {
 	workflow.Register(handleEatsOrderWorkflow)
 	activity.Register(printReceivedActivity)
+	activity.Register(printCustomerMessageActivity)
 }
