@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.uber.org/cadence/activity"
@@ -51,11 +52,15 @@ func handleEatsOrderWorkflow(ctx workflow.Context, userId string, order Order, r
 	if decision.Accepted {
 		logger.Info("Order accepted", zap.String("reason", decision.Reason))
 
+		// Sleep for SleepSeconds seconds (usually 3 seconds)
+		workflow.Sleep(ctx, time.Duration(SleepSeconds)*time.Second)
+		logger.Info("Waited "+strconv.Itoa(SleepSeconds)+" seconds", zap.Int("seconds", SleepSeconds))
+
 		// Start the delivery workflow
 		childWorkflowOptions := workflow.ChildWorkflowOptions{
 			ExecutionStartToCloseTimeout: time.Minute * 5,
 		}
-		ctx = workflow.WithChildWorkflowOptions(ctx, childWorkflowOptions)
+		ctx = workflow.WithChildOptions(ctx, childWorkflowOptions)
 
 		err = workflow.ExecuteChildWorkflow(ctx, deliverOrderWorkflow, order.ID).Get(ctx, nil)
 		if err != nil {
